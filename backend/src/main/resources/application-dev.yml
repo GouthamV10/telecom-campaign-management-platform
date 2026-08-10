@@ -26,3 +26,4 @@ spring:
 logging:
   level:
     org.springframework: INFO
+
