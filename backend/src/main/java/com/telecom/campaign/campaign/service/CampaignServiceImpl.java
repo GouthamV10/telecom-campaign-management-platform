@@ -5,8 +5,13 @@ import com.telecom.campaign.campaign.dto.CampaignResponse;
 import com.telecom.campaign.campaign.entity.Campaign;
 import com.telecom.campaign.campaign.mapper.CampaignMapper;
 import com.telecom.campaign.campaign.repository.CampaignRepository;
+import com.telecom.campaign.campaign.specification.CampaignSpecification;
+import com.telecom.campaign.common.enums.CampaignStatus;
 import com.telecom.campaign.exception.ResourceNotFoundException;
 import com.telecom.campaign.user.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -40,9 +45,48 @@ public class CampaignServiceImpl implements CampaignService{
     }
 
     @Override
-    public List<CampaignResponse> getAllCampaign(){
-        List<Campaign> campaigns = campaignRepository.findAll();
-        return campaigns.stream().map(campaignMapper::toResponse).toList();
+    public Page<CampaignResponse> getAllCampaign(Pageable pageable){
+        Page<Campaign> campaigns = campaignRepository.findAll(pageable);
+        return campaigns.map(campaignMapper::toResponse);
+    }
+
+    @Override
+    public  Page<CampaignResponse> getCampaigns(CampaignStatus status, String keyword,LocalDateTime startDate, LocalDateTime endDate, Pageable pageable){
+        Specification<Campaign> specification = null;
+
+        if(status != null){
+            specification = CampaignSpecification.hasStatus(status);
+        }
+
+        if(keyword != null && !keyword.isBlank()){
+            Specification<Campaign> keywordSpec = CampaignSpecification.hasKeyword(keyword);
+            if(specification == null){
+                specification = keywordSpec;
+            }else{
+                specification = specification.and(keywordSpec);
+            }
+        }
+
+        if(startDate !=null){
+            Specification<Campaign> startDateSpec = CampaignSpecification.hasStartDateAfterOrEqual(startDate);
+            if(specification == null){
+                specification = startDateSpec;
+            }else{
+                specification = specification.and(startDateSpec);
+            }
+        }
+
+        if(endDate!= null){
+            Specification<Campaign> endDateSpec = CampaignSpecification.hasEndDateBeforeOrEqual(endDate);
+            if(specification == null){
+                specification = endDateSpec;
+            }else{
+                specification = specification.and(endDateSpec);
+            }
+        }
+
+        Page<Campaign> campaigns = campaignRepository.findAll(specification, pageable);
+        return campaigns.map(campaignMapper::toResponse);
     }
 
     @Override

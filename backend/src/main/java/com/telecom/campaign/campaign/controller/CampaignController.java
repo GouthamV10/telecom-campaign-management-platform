@@ -4,10 +4,14 @@ import com.telecom.campaign.campaign.dto.CampaignRequest;
 import com.telecom.campaign.campaign.dto.CampaignResponse;
 import com.telecom.campaign.campaign.service.CampaignService;
 import com.telecom.campaign.common.dto.ApiResponse;
+import com.telecom.campaign.common.enums.CampaignStatus;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -35,11 +39,12 @@ public class CampaignController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CampaignResponse>>> getAllCampaign(){
-        List<CampaignResponse> campaignResponse = campaignService.getAllCampaign();
-        ApiResponse<List<CampaignResponse>> response = ApiResponse.<List<CampaignResponse>>builder().success(true).statusCode(200).message("All Campaigns Fetched Successfully").data(campaignResponse).build();
+    public ResponseEntity<ApiResponse<Page<CampaignResponse>>> getAllCampaign(@RequestParam(required = false) CampaignStatus status, @RequestParam(required = false) String keyword, @RequestParam(required = false) LocalDateTime startDate, @RequestParam(required = false) LocalDateTime endDate, Pageable pageable){
+        Page<CampaignResponse> campaignResponse = campaignService.getCampaigns(status, keyword,startDate, endDate, pageable);
+        ApiResponse<Page<CampaignResponse>> response = ApiResponse.<Page<CampaignResponse>>builder().success(true).statusCode(200).message("Campaigns Fetched Successfully").data(campaignResponse).build();
         return ResponseEntity.status(200).body(response);
     }
+
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<CampaignResponse>> updateCampaign(@PathVariable Long id,@Valid @RequestBody CampaignRequest campaignRequest){
