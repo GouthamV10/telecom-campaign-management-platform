@@ -1,374 +1,100 @@
-# Database Schema
+# Database Schema (Current Backend Implementation)
 
-# Enterprise Telecom Campaign Management Platform
+This schema reflects the actual persistence model used by the current backend module.
 
-**Version:** 1.0
+## Database
 
----
-
-# 1. Purpose
-
-This document defines the physical database schema for the Enterprise Telecom Campaign Management Platform.
-
-It includes the table definitions, primary keys, foreign keys, constraints, indexing strategy, and auditing columns that will be implemented in MySQL using Spring Data JPA.
+- Name: telecom_campaign_db
+- Engine: MySQL 8 / InnoDB
+- DDL Strategy: Spring JPA `hibernate.ddl-auto=update`
 
 ---
 
-# 2. Database Information
+## 1. users
 
-| Property        | Value               |
-| --------------- | ------------------- |
-| Database        | telecom_campaign_db |
-| Database Engine | MySQL 8             |
-| Character Set   | UTF-8               |
-| Storage Engine  | InnoDB              |
+```sql
+CREATE TABLE users (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL,
+    enabled BOOLEAN NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL
+);
+```
 
----
+### Notes
 
-# 3. Common Audit Columns
+- `role` stores enum value as string (`ADMIN`, `MANAGER`, `USER`)
+- `enabled` indicates account status
+- `created_at` and `updated_at` are managed in Java code
 
-Every business table will contain the following columns.
+Indexes:
 
-| Column     | Type      | Description                  |
-| ---------- | --------- | ---------------------------- |
-| created_at | TIMESTAMP | Record creation time         |
-| updated_at | TIMESTAMP | Last modification time       |
-| created_by | BIGINT    | User who created the record  |
-| updated_by | BIGINT    | User who modified the record |
-
----
-
-# 4. Tables
-
----
-
-## USERS
-
-| Column        | Type         | Constraint               |
-| ------------- | ------------ | ------------------------ |
-| id            | BIGINT       | PK                       |
-| username      | VARCHAR(50)  | UNIQUE, NOT NULL         |
-| email         | VARCHAR(100) | UNIQUE                   |
-| password      | VARCHAR(255) | NOT NULL                 |
-| first_name    | VARCHAR(50)  | NOT NULL                 |
-| last_name     | VARCHAR(50)  |                          |
-| mobile_number | VARCHAR(15)  |                          |
-| status        | ENUM         | ACTIVE, INACTIVE, LOCKED |
-| created_at    | TIMESTAMP    |                          |
-| updated_at    | TIMESTAMP    |                          |
-
-Indexes
-
-* username
-* email
+- username (unique)
+- email (unique)
 
 ---
 
-## ROLES
+## 2. campaign
 
-| Column      | Type         |
-| ----------- | ------------ |
-| id          | BIGINT       |
-| role_name   | VARCHAR(50)  |
-| description | VARCHAR(255) |
+```sql
+CREATE TABLE campaign (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    description VARCHAR(500) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    start_date TIMESTAMP NULL,
+    end_date TIMESTAMP NULL,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    manager_id BIGINT NOT NULL,
+    CONSTRAINT fk_campaign_manager
+        FOREIGN KEY (manager_id) REFERENCES users(id)
+);
+```
 
-Examples
+### Notes
 
-* ADMIN
-* MARKETING_MANAGER
-* OPERATOR
-* VIEWER
+- `status` stores enum value as string (`DRAFT`, `ACTIVE`, `PAUSED`, `COMPLETED`, `CANCELLED`)
+- A campaign is assigned to exactly one manager user
+- The table name is singular: `campaign`
 
----
+Indexes:
 
-## PERMISSIONS
-
-| Column          | Type         |
-| --------------- | ------------ |
-| id              | BIGINT       |
-| permission_name | VARCHAR(100) |
-| description     | VARCHAR(255) |
-
-Examples
-
-* CREATE_CAMPAIGN
-* APPROVE_CAMPAIGN
-* VIEW_REPORTS
-
----
-
-## USER_ROLES
-
-| Column  | Type      |
-| ------- | --------- |
-| user_id | BIGINT FK |
-| role_id | BIGINT FK |
-
-Many-to-Many Mapping
+- name (unique)
+- manager_id (FK)
+- status (queryable by enum)
 
 ---
 
-## ROLE_PERMISSIONS
+## 3. Relationships
 
-| Column        | Type      |
-| ------------- | --------- |
-| role_id       | BIGINT FK |
-| permission_id | BIGINT FK |
+### users -> campaign
 
----
-
-## REFRESH_TOKENS
-
-| Column      | Type         |
-| ----------- | ------------ |
-| id          | BIGINT       |
-| token       | VARCHAR(512) |
-| user_id     | BIGINT FK    |
-| expiry_date | DATETIME     |
-| revoked     | BOOLEAN      |
+- One manager can create/manage many campaigns
+- `campaign.manager_id` -> `users.id`
 
 ---
 
-## LOGIN_HISTORY
+## 4. Security and auth behavior
 
-| Column      | Type         |
-| ----------- | ------------ |
-| id          | BIGINT       |
-| user_id     | BIGINT FK    |
-| login_time  | TIMESTAMP    |
-| logout_time | TIMESTAMP    |
-| ip_address  | VARCHAR(45)  |
-| device_info | VARCHAR(255) |
+The current implementation uses JWT-based authentication and the `User` entity stores the user role directly. There are no separate `roles`, `permissions`, `refresh_tokens`, `customers`, `segments`, or audit tables in this backend version.
 
 ---
 
-## CUSTOMERS
+## 5. Current data model summary
 
-| Column             | Type               |
-| ------------------ | ------------------ |
-| id                 | BIGINT             |
-| customer_number    | VARCHAR(30) UNIQUE |
-| first_name         | VARCHAR(50)        |
-| last_name          | VARCHAR(50)        |
-| mobile_number      | VARCHAR(15)        |
-| email              | VARCHAR(100)       |
-| state              | VARCHAR(50)        |
-| telecom_circle     | VARCHAR(50)        |
-| customer_type      | ENUM               |
-| recharge_plan      | DECIMAL(10,2)      |
-| monthly_revenue    | DECIMAL(10,2)      |
-| preferred_language | VARCHAR(30)        |
-| kyc_status         | ENUM               |
-| account_status     | ENUM               |
-| created_at         | TIMESTAMP          |
-| updated_at         | TIMESTAMP          |
+The implemented backend currently includes only the following core entities:
 
-Indexes
+- `User`
+- `Campaign`
 
-* customer_number
-* mobile_number
-* state
-* telecom_circle
-* customer_type
+and the associated enums:
 
----
+- `Role`
+- `CampaignStatus`
 
-## SEGMENTS
-
-| Column       | Type         |
-| ------------ | ------------ |
-| id           | BIGINT       |
-| segment_name | VARCHAR(100) |
-| description  | TEXT         |
-| active       | BOOLEAN      |
-
----
-
-## SEGMENT_RULES
-
-| Column           | Type         |
-| ---------------- | ------------ |
-| id               | BIGINT       |
-| segment_id       | BIGINT FK    |
-| field_name       | VARCHAR(50)  |
-| operator         | VARCHAR(20)  |
-| comparison_value | VARCHAR(255) |
-
-Example
-
-State = Karnataka
-
-Revenue > 1000
-
-Plan >= 299
-
----
-
-## CAMPAIGNS
-
-| Column         | Type         |
-| -------------- | ------------ |
-| id             | BIGINT       |
-| campaign_name  | VARCHAR(150) |
-| description    | TEXT         |
-| campaign_type  | ENUM         |
-| priority       | ENUM         |
-| status         | ENUM         |
-| segment_id     | BIGINT FK    |
-| scheduled_time | DATETIME     |
-| start_time     | DATETIME     |
-| end_time       | DATETIME     |
-| created_by     | BIGINT FK    |
-
-Indexes
-
-* status
-* scheduled_time
-* campaign_name
-
----
-
-## CAMPAIGN_CUSTOMERS
-
-| Column          | Type         |
-| --------------- | ------------ |
-| id              | BIGINT       |
-| campaign_id     | BIGINT FK    |
-| customer_id     | BIGINT FK    |
-| delivery_status | ENUM         |
-| delivery_time   | TIMESTAMP    |
-| remarks         | VARCHAR(255) |
-
----
-
-## AUDIT_LOGS
-
-| Column      | Type         |
-| ----------- | ------------ |
-| id          | BIGINT       |
-| user_id     | BIGINT FK    |
-| module_name | VARCHAR(100) |
-| action      | VARCHAR(100) |
-| entity_name | VARCHAR(100) |
-| entity_id   | BIGINT       |
-| description | TEXT         |
-| created_at  | TIMESTAMP    |
-
----
-
-## NOTIFICATIONS
-
-| Column            | Type         |
-| ----------------- | ------------ |
-| id                | BIGINT       |
-| campaign_id       | BIGINT FK    |
-| customer_id       | BIGINT FK    |
-| notification_type | ENUM         |
-| delivery_status   | ENUM         |
-| delivered_at      | TIMESTAMP    |
-| error_message     | VARCHAR(255) |
-
----
-
-# 5. Relationship Summary
-
-| Parent   | Child            | Relationship |
-| -------- | ---------------- | ------------ |
-| User     | RefreshToken     | One-to-Many  |
-| User     | LoginHistory     | One-to-Many  |
-| User     | AuditLog         | One-to-Many  |
-| User     | Role             | Many-to-Many |
-| Role     | Permission       | Many-to-Many |
-| Segment  | SegmentRule      | One-to-Many  |
-| Segment  | Campaign         | One-to-Many  |
-| Campaign | CampaignCustomer | One-to-Many  |
-| Customer | CampaignCustomer | One-to-Many  |
-| Campaign | Notification     | One-to-Many  |
-
----
-
-# 6. Naming Conventions
-
-* Table names use snake_case and plural form.
-* Column names use snake_case.
-* Primary key column is `id`.
-* Foreign keys end with `_id`.
-* Timestamp columns end with `_at`.
-
----
-
-# 7. Constraints
-
-* Primary Keys on every table.
-* Foreign Keys for referential integrity.
-* Unique constraints on username, email, and customer_number.
-* NOT NULL on mandatory business fields.
-* ENUMs for status-based columns.
-
----
-
-# 8. Indexing Strategy
-
-Frequently queried columns will be indexed.
-
-Examples:
-
-Users
-
-* username
-* email
-
-Customers
-
-* mobile_number
-* state
-* telecom_circle
-* customer_type
-
-Campaigns
-
-* status
-* scheduled_time
-* campaign_name
-
-Audit Logs
-
-* user_id
-* created_at
-
----
-
-# 9. Soft Delete Strategy
-
-Customer and Campaign records will use a logical deletion mechanism instead of physical deletion.
-
-Version 1 implementation:
-
-* active (BOOLEAN)
-
-Future versions may use:
-
-* deleted_at (TIMESTAMP)
-
----
-
-# 10. Future Enhancements
-
-The schema supports future additions without major redesign.
-
-Planned enhancements include:
-
-* Campaign Templates
-* SMS Gateway Integration
-* Email Gateway
-* Customer Preferences
-* File Attachments
-* Kafka Event Tracking
-* Campaign Analytics
-* Multi-Tenant Support
-
----
-
-# Conclusion
-
-The Version 1 database schema provides a normalized, scalable, and enterprise-ready relational model for the Telecom Campaign Management Platform. The schema is designed to support secure authentication, customer management, campaign execution, reporting, auditing, and future enhancements while following relational database best practices and Spring Data JPA conventions.
+This is the schema that matches the code present in the backend module today.

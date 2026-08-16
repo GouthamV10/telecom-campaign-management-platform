@@ -1,369 +1,132 @@
-# Enterprise Telecom Campaign Management Platform
+# Requirements Specification
+
+# Telecom Campaign Management Backend
 
 ## Version
 
 **Version:** 1.0
-
-**Project Type:** Enterprise Java Full Stack Application
-
-**Status:** Design Phase
+**Status:** Current backend implementation
 
 ---
 
-# Project Overview
+## 1. Project Goal
 
-The Enterprise Telecom Campaign Management Platform is a web-based application designed for telecom operators to efficiently create, manage, schedule, and monitor marketing campaigns.
-
-The platform enables marketing teams to target customers based on multiple segmentation criteria such as state, telecom circle, customer type, recharge plan, revenue, language, and KYC status. Campaigns can be created, reviewed, approved, scheduled, and executed through a secure workflow.
-
-The application follows a modern enterprise architecture using Spring Boot, React, MySQL, Redis, Docker, and GitHub Actions with role-based authentication and production-ready coding standards.
+The current backend provides a focused campaign management system for telecom operations. It allows users to register, authenticate, manage secured access, and create or maintain campaigns.
 
 ---
 
-# Business Problem
+## 2. Functional Requirements
 
-Telecom companies frequently run promotional campaigns such as:
+## 2.1 Authentication
 
-* Recharge offers
-* Data booster offers
-* SMS promotions
-* Customer retention campaigns
-* Festival offers
-* Regional marketing campaigns
+The system shall allow:
 
-Managing these campaigns manually becomes difficult when millions of customers are involved.
-
-The objective of this application is to automate campaign creation, customer segmentation, scheduling, execution, monitoring, and reporting.
+- user login with email and password
+- JWT token generation on successful authentication
+- request authentication using Bearer token
+- public access for `/api/auth/login`
+- public access for `/api/users/register`
 
 ---
 
-# Project Objectives
+## 2.2 User Management
 
-* Develop an enterprise-grade campaign management system.
-* Allow marketing users to create and manage campaigns.
-* Provide dynamic customer segmentation.
-* Schedule campaigns for future execution.
-* Maintain audit history of all business activities.
-* Secure the application using JWT authentication and role-based access control.
-* Improve application performance using Redis caching.
-* Deploy using Docker and automate builds using GitHub Actions.
+The system shall allow:
 
----
+- user registration with username, email, and password
+- duplicate email validation
+- default role assignment as `USER`
+- admin creation of other users with role `MANAGER`
+- admin-only access check endpoint
 
-# Target Users
+### Business rules
 
-## Administrator
-
-Responsible for managing users, roles, permissions, and application settings.
+- email must be unique
+- password is encrypted using BCrypt
+- admin users cannot be created through the create-user endpoint
+- only `ADMIN` can create additional users
 
 ---
 
-## Marketing Manager
+## 2.3 Campaign Management
 
-Responsible for creating, approving, scheduling, and monitoring campaigns.
+The system shall allow:
 
----
+- creation of a campaign by an authenticated admin or manager
+- campaign retrieval by ID
+- campaign listing with filters
+- filtering by status, keyword, start date, and end date
+- update of campaign metadata
+- deletion of a campaign
+- update of campaign lifecycle status
 
-## Operator
+### Campaign data fields
 
-Responsible for maintaining customer data and assisting campaign execution.
-
----
-
-## Viewer
-
-Can view dashboards and reports without modifying data.
-
----
-
-# Functional Requirements
-
-## Authentication
-
-The system shall provide:
-
-* User Login
-* JWT Authentication
-* Refresh Token
-* Logout
-* Password Encryption
-* Role-Based Access Control (RBAC)
+- `name`
+- `description`
+- `status`
+- `startDate`
+- `endDate`
+- `manager` (the authenticated user who owns the campaign)
 
 ---
 
-## User Management
+## 2.4 Campaign Status Rules
 
-The system shall allow administrators to:
+The system shall enforce lifecycle transitions:
 
-* Create Users
-* Update Users
-* Disable Users
-* Assign Roles
-* Reset Passwords
-
----
-
-## Customer Management
-
-The system shall provide:
-
-* Add Customer
-* Update Customer
-* Soft Delete Customer
-* Search Customers
-* Pagination
-* Sorting
-* Filtering
-* CSV Import
-* CSV Export
-
-Customer information includes:
-
-* Customer Name
-* Mobile Number
-* Telecom Circle
-* State
-* Customer Type
-* Recharge Plan
-* Monthly Revenue
-* Preferred Language
-* KYC Status
-* Account Status
+- DRAFT can move to ACTIVE or CANCELLED
+- ACTIVE can move to PAUSED, COMPLETED, or CANCELLED
+- PAUSED can move to ACTIVE or CANCELLED
+- COMPLETED and CANCELLED are terminal states
 
 ---
 
-## Campaign Management
+## 2.5 Authorization Requirements
 
-Users can:
+The backend shall enforce:
 
-* Create Campaign
-* Update Campaign
-* Delete Campaign
-* Save Draft
-* Submit for Approval
-* Approve Campaign
-* Reject Campaign
-* Schedule Campaign
-* Cancel Campaign
-* View Campaign History
-
-Campaign information includes:
-
-* Campaign Name
-* Campaign Type
-* Description
-* Start Date
-* End Date
-* Campaign Priority
-* Campaign Status
+- `ADMIN` access for admin-only user endpoints
+- `ADMIN` and `MANAGER` access for create/update/delete/status campaign operations
+- authentication requirement for all non-public endpoints
 
 ---
 
-## Customer Segmentation
+## 3. Non-Functional Requirements
 
-Marketing users shall be able to filter customers using multiple criteria.
+## 3.1 Security
 
-Example:
+- JWT-based authentication
+- BCrypt password hashing
+- validation for request body fields
+- role-based access restrictions
 
-* State = Karnataka
-* Customer Type = Prepaid
-* Recharge Plan >= ₹299
-* Revenue > ₹1000
-* KYC Status = Verified
+## 3.2 Maintainability
 
-The application shall automatically identify matching customers.
+- layered architecture
+- DTOs for inbound and outbound payloads
+- mapper usage for entity-to-response conversion
+- centralized exception handling
 
----
+## 3.3 Data Integrity
 
-## Campaign Scheduler
-
-The application shall:
-
-* Schedule campaigns
-* Execute campaigns automatically
-* Update campaign status
-* Generate execution logs
-* Retry failed executions
+- unique email enforcement
+- foreign key relationship from campaign to user manager
+- validation of campaign state transitions
 
 ---
 
-## Dashboard
+## 4. Current Out-of-Scope Requirements
 
-The dashboard shall display:
+The current backend does not implement the following modules:
 
-* Total Customers
-* Total Campaigns
-* Running Campaigns
-* Scheduled Campaigns
-* Completed Campaigns
-* Failed Campaigns
-* Success Rate
-* Daily Campaign Statistics
+- customer management
+- segments and segment rules
+- dashboard analytics
+- reports
+- notifications
+- audit log module
+- refresh token storage workflow
+- role-permission matrix tables
 
----
-
-## Reports
-
-Generate reports for:
-
-* Campaign Performance
-* Customer Statistics
-* Campaign Success Rate
-* Execution History
-* User Activity
-
----
-
-## Audit Logging
-
-The application shall record:
-
-* User Login
-* User Logout
-* Campaign Creation
-* Campaign Updates
-* Campaign Approval
-* Customer Import
-* Customer Update
-* User Management Activities
-
----
-
-# Non-Functional Requirements
-
-## Security
-
-* JWT Authentication
-* BCrypt Password Encryption
-* Role-Based Authorization
-* Input Validation
-* Secure REST APIs
-
----
-
-## Performance
-
-* API response time below 2 seconds for common operations
-* Redis caching for frequently accessed data
-* Database indexing for optimized search
-
----
-
-## Scalability
-
-The application should support future expansion for millions of customer records and multiple campaign executions.
-
----
-
-## Availability
-
-The application should remain operational with proper exception handling and centralized logging.
-
----
-
-## Maintainability
-
-* Layered Architecture
-* Clean Code Principles
-* SOLID Principles
-* Reusable Components
-* Modular Design
-
----
-
-## Reliability
-
-* Global Exception Handling
-* Proper Validation
-* Transaction Management
-* Audit Logging
-
----
-
-## Documentation
-
-* Swagger/OpenAPI Documentation
-* Database Design Documentation
-* API Documentation
-* Architecture Documentation
-
----
-
-# Technology Stack
-
-## Backend
-
-* Java 21
-* Spring Boot 3
-* Spring Security
-* Spring Data JPA
-* Hibernate
-* Maven
-
----
-
-## Frontend
-
-* React
-* Vite
-* Material UI
-* Redux Toolkit
-* Axios
-* React Router
-
----
-
-## Database
-
-* MySQL
-* Redis
-
----
-
-## DevOps
-
-* Docker
-* Docker Compose
-* GitHub Actions
-* Nginx
-
----
-
-## Testing
-
-* JUnit 5
-* Mockito
-* Postman
-
----
-
-# Project Modules
-
-* Authentication Module
-* User Management Module
-* Customer Management Module
-* Campaign Management Module
-* Customer Segmentation Module
-* Campaign Scheduler Module
-* Dashboard Module
-* Reporting Module
-* Audit Logging Module
-* Notification Module
-
----
-
-# Future Enhancements
-
-* Email Notification Integration
-* SMS Gateway Integration
-* Kafka-based Event Processing
-* Elasticsearch for Advanced Search
-* Multi-Tenant Support
-* Kubernetes Deployment
-* Prometheus & Grafana Monitoring
-
----
-
-# Expected Outcome
-
-The completed application will simulate a real-world enterprise telecom campaign management system with secure authentication, scalable architecture, dynamic customer segmentation, campaign scheduling, Redis caching, Dockerized deployment, CI/CD automation, and a responsive React frontend. The project will demonstrate enterprise software development practices suitable for Java Full Stack developer roles requiring 3+ years of experience.
+These features remain future enhancements and are not included in the implemented backend contract.
