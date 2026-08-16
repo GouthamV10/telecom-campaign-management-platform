@@ -5,7 +5,7 @@ import com.telecom.campaign.campaign.dto.CampaignResponse;
 import com.telecom.campaign.campaign.entity.Campaign;
 import com.telecom.campaign.campaign.mapper.CampaignMapper;
 import com.telecom.campaign.campaign.repository.CampaignRepository;
-import com.telecom.campaign.campaign.specification.CampaignSpecification;
+import com.telecom.campaign.campaign.specifications.CampaignSpecification;
 import com.telecom.campaign.common.enums.CampaignStatus;
 import com.telecom.campaign.common.enums.Role;
 import com.telecom.campaign.exception.InvalidCampaignStatusException;
@@ -22,8 +22,10 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class CampaignServiceImpl implements CampaignService{
 
     private final CampaignMapper campaignMapper;
@@ -37,6 +39,7 @@ public class CampaignServiceImpl implements CampaignService{
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @Override
     public CampaignResponse createCampaign(CampaignRequest campaignRequest){
+        log.info("Creating campaign name={}", campaignRequest.getName());
         User user = (User) Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getPrincipal();
         Campaign campaign = Campaign.builder().name(campaignRequest.getName()).description(campaignRequest.getDescription()).status(CampaignStatus.DRAFT).startDate(campaignRequest.getStartDate()).endDate(campaignRequest.getEndDate()).manager(user).createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build();
         Campaign savedCampaign = campaignRepository.save(campaign);
@@ -45,18 +48,21 @@ public class CampaignServiceImpl implements CampaignService{
 
     @Override
     public CampaignResponse getCampaign(Long id){
+        log.debug("Fetching campaign id={}", id);
         Campaign campaign = campaignRepository.findById(id).orElseThrow(()-> new ResourceNotFoundException("Campaign not found"));
         return campaignMapper.toResponse(campaign);
     }
 
     @Override
     public Page<CampaignResponse> getAllCampaign(Pageable pageable){
+        log.debug("Fetching all campaigns page={}", pageable.getPageNumber());
         Page<Campaign> campaigns = campaignRepository.findAll(pageable);
         return campaigns.map(campaignMapper::toResponse);
     }
 
     @Override
     public  Page<CampaignResponse> getCampaigns(CampaignStatus status, String keyword,LocalDateTime startDate, LocalDateTime endDate, Pageable pageable){
+        log.debug("Searching campaigns status={} keyword={} startDate={} endDate={} page={}", status, keyword, startDate, endDate, pageable.getPageNumber());
         Specification<Campaign> specification = null;
 
         if(status != null){
@@ -96,6 +102,7 @@ public class CampaignServiceImpl implements CampaignService{
 
     @Override
     public CampaignResponse updateCampaign(Long id, CampaignRequest campaignRequest){
+        log.info("Updating campaign id={}", id);
         User currentUser = (User) Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getPrincipal();
         Campaign campaign = campaignRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Campaign Not Found"));
 
@@ -113,6 +120,7 @@ public class CampaignServiceImpl implements CampaignService{
 
     @Override
     public void deleteCampaign(Long id){
+        log.info("Deleting campaign id={}", id);
         User currentUser = (User) Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getPrincipal();
         Campaign campaign = campaignRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Campaign not Found"));
         checkCampaignAccess(currentUser, campaign);
@@ -139,6 +147,7 @@ public class CampaignServiceImpl implements CampaignService{
     @Override
     @Transactional
     public CampaignResponse updateCampaignStatus(Long id, CampaignStatus status){
+        log.info("updateCampaignStatus called for id={} to status={}", id, status);
         User currentUser = (User) Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getPrincipal();
         Campaign campaign = campaignRepository.findById(id).orElseThrow(()-> new ResourceNotFoundException("Campaign not Found"));
         checkCampaignAccess(currentUser,campaign);
@@ -149,6 +158,7 @@ public class CampaignServiceImpl implements CampaignService{
     }
 
     private void validateStatusTransition(CampaignStatus currentStatus, CampaignStatus newStatus){
+        log.debug("Validating status transition from {} to {}", currentStatus, newStatus);
         if(currentStatus == CampaignStatus.COMPLETED || currentStatus == CampaignStatus.CANCELLED){
             throw new InvalidCampaignStatusException("Campaign is already "+currentStatus);
         }
