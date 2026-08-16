@@ -1,4 +1,4 @@
-package com.telecom.campaign.config.SecurityConfig;
+package com.telecom.campaign.config;
 
 import com.telecom.campaign.security.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
@@ -11,20 +11,25 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableMethodSecurity
+@Slf4j
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter){
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+
     }
+
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
+        log.info("Configuring SecurityFilterChain");
         http
                 .addFilterBefore(
                         jwtAuthenticationFilter,
@@ -49,7 +54,9 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationEntryPoint authenticationEntryPoint(){
+        log.debug("Creating AuthenticationEntryPoint bean");
         return ((request, response, authException) -> {
+            log.warn("Unauthorized access attempt: {}", authException.getMessage());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
             response.getWriter().write("""
@@ -65,7 +72,9 @@ public class SecurityConfig {
 
     @Bean
     public AccessDeniedHandler accessDeniedHandler(){
+        log.debug("Creating AccessDeniedHandler bean");
         return ((request, response, accessDeniedException) -> {
+            log.warn("Access denied: {}", accessDeniedException.getMessage());
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             response.setContentType("application/json");
             response.getWriter().write("""
@@ -81,6 +90,7 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder(){
+        log.debug("Providing PasswordEncoder bean (BCrypt)");
         return new BCryptPasswordEncoder();
     }
 }

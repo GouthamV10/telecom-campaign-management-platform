@@ -1,4 +1,4 @@
-package com.telecom.campaign.config.OpenApiConfig;
+package com.telecom.campaign.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.ExternalDocumentation;
@@ -8,12 +8,15 @@ import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import lombok.extern.slf4j.Slf4j;
 
 @Configuration
+@Slf4j
 public class OpenApiConfig {
 
     @Bean
     public OpenAPI telecomCampaignOpenAPI() {
+                log.info("Creating OpenAPI definition for Telecom Campaign Management API");
         return new OpenAPI().info(new Info()
                         .title("Telecom Campaign Management API")
                         .description("""

@@ -1,4 +1,4 @@
-package com.telecom.campaign.campaign.specification;
+package com.telecom.campaign.campaign.specifications;
 
 import com.telecom.campaign.campaign.entity.Campaign;
 import com.telecom.campaign.common.enums.CampaignStatus;
