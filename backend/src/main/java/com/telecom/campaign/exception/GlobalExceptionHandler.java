@@ -2,6 +2,7 @@ package com.telecom.campaign.exception;
 
 import com.telecom.campaign.common.dto.ApiResponse;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -14,6 +15,21 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler{
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(
+            AccessDeniedException ex) {
+
+        ApiResponse<Void> response =
+                ApiResponse.<Void>builder()
+                        .success(false)
+                        .statusCode(403)
+                        .message(ex.getMessage())
+                        .data(null)
+                        .build();
+
+        return ResponseEntity.status(403).body(response);
+    }
 
     @ExceptionHandler(EmailAlreadyExistsException.class)
     public ResponseEntity<ApiResponse<Void>> handleEmailAlreadyExistsException(EmailAlreadyExistsException ex){
@@ -40,5 +56,11 @@ public class GlobalExceptionHandler{
     public ResponseEntity<ApiResponse<Void>> handleResourceNotFoundException(ResourceNotFoundException ex){
         ApiResponse<Void> response = ApiResponse.<Void>builder().success(false).statusCode(404).message(ex.getMessage()).data(null).build();
         return ResponseEntity.status(404).body(response);
+    }
+
+    @ExceptionHandler(InvalidCampaignStatusException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidCampaignStatusException(InvalidCampaignStatusException ex){
+        ApiResponse<Void> response = ApiResponse.<Void>builder().success(false).statusCode(400).message(ex.getMessage()).data(null).build();
+        return ResponseEntity.status(400).body(response);
     }
 }

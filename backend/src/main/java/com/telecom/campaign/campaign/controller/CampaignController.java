@@ -2,6 +2,7 @@ package com.telecom.campaign.campaign.controller;
 
 import com.telecom.campaign.campaign.dto.CampaignRequest;
 import com.telecom.campaign.campaign.dto.CampaignResponse;
+import com.telecom.campaign.campaign.dto.CampaignStatusRequest;
 import com.telecom.campaign.campaign.service.CampaignService;
 import com.telecom.campaign.common.dto.ApiResponse;
 import com.telecom.campaign.common.enums.CampaignStatus;
@@ -60,4 +61,10 @@ public class CampaignController {
         return ResponseEntity.status(200).body(response);
     }
 
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<ApiResponse<CampaignResponse>> updateCampaignStatus(@PathVariable Long id, @Valid @RequestBody CampaignStatusRequest campaignStatusRequest){
+        CampaignResponse campaignResponse = campaignService.updateCampaignStatus(id,campaignStatusRequest.getStatus());
+        ApiResponse<CampaignResponse> response = ApiResponse.<CampaignResponse>builder().success(true).statusCode(200).message("Campaign Status Updated").data(campaignResponse).build();
+        return ResponseEntity.ok(response);
+    }
 }

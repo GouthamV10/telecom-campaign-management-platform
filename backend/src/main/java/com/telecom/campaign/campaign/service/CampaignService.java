@@ -22,4 +22,6 @@ public interface CampaignService {
     CampaignResponse updateCampaign(Long id, CampaignRequest campaignRequest);
 
     void deleteCampaign(Long id);
+
+    CampaignResponse updateCampaignStatus(Long id, CampaignStatus status);
 }

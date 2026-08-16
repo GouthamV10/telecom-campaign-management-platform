@@ -26,9 +26,6 @@ public class CampaignRequest {
     private String description;
 
     @NotNull
-    private CampaignStatus status;
-
-    @NotNull
     private LocalDateTime startDate;
 
     @NotNull

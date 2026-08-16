@@ -1,16 +1,20 @@
 package com.telecom.campaign.config.SecurityConfig;
 
 import com.telecom.campaign.security.JwtAuthenticationFilter;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -36,8 +40,43 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/api/users/admin-test").hasRole("ADMIN")
                         .anyRequest().authenticated()
-                );
+                ).exceptionHandling(exception -> {
+                    exception.authenticationEntryPoint(authenticationEntryPoint());
+                    exception.accessDeniedHandler(accessDeniedHandler());
+                });
         return http.build();
+    }
+
+    @Bean
+    public AuthenticationEntryPoint authenticationEntryPoint(){
+        return ((request, response, authException) -> {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write("""
+                    {
+                        "success": false,
+                        "statusCode": 401,
+                        "message": "Unauthorized",
+                        "data": null
+                    }
+                    """);
+        });
+    }
+
+    @Bean
+    public AccessDeniedHandler accessDeniedHandler(){
+        return ((request, response, accessDeniedException) -> {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setContentType("application/json");
+            response.getWriter().write("""
+                    {
+                        "success": false,
+                        "statusCode": 403,
+                        "message": "Access Denied",
+                        "data": null
+                    }
+                    """);
+        });
     }
 
     @Bean
