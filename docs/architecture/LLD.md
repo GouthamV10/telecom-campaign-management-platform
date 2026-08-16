@@ -1,550 +1,340 @@
 # Low Level Design (LLD)
 
-# Enterprise Telecom Campaign Management Platform
+# Telecom Campaign Management Backend
+
+## Version
 
 **Version:** 1.0
-
-**Document Status:** Draft
-
----
-
-# 1. Purpose
-
-This document defines the internal design of the Enterprise Telecom Campaign Management Platform.
-
-Unlike the High Level Design (HLD), which describes the overall architecture, this document focuses on how the application will be implemented. It defines the package structure, modules, responsibilities, coding standards, security strategy, validation, caching, scheduling, logging, and design principles that the development team will follow.
-
-This document serves as the implementation blueprint for the project.
+**Status:** Current implementation
 
 ---
 
-# 2. Design Goals
+## 1. Purpose
 
-The application is designed to achieve the following goals:
-
-* Modular architecture
-* High maintainability
-* Scalability
-* Clean code
-* Secure authentication
-* Reusable components
-* Enterprise coding standards
-* Easy testing
-* Future microservice migration
+This document describes the current low-level design of the repository’s backend. It maps the actual Java classes, package layout, controllers, services, repositories, DTOs, entities, and security flow implemented in the project.
 
 ---
 
-# 3. Backend Project Structure
-
-The backend follows a **Package-by-Feature** architecture.
+## 2. Actual Project Structure
 
 ```text
-src/main/java/com/telecom/campaign
-
-├── auth
-│   ├── controller
-│   ├── dto
-│   ├── entity
-│   ├── repository
-│   ├── security
-│   ├── service
-│   └── mapper
-│
-├── user
-│   ├── controller
-│   ├── dto
-│   ├── entity
-│   ├── repository
-│   ├── service
-│   └── mapper
-│
-├── customer
-│   ├── controller
-│   ├── dto
-│   ├── entity
-│   ├── repository
-│   ├── service
-│   ├── specification
-│   └── mapper
-│
+backend/src/main/java/com/telecom/campaign
+├── CampaignApplication.java
 ├── campaign
 │   ├── controller
+│   │   └── CampaignController.java
 │   ├── dto
+│   │   ├── CampaignRequest.java
+│   │   ├── CampaignResponse.java
+│   │   └── CampaignStatusRequest.java
 │   ├── entity
-│   ├── repository
-│   ├── service
-│   ├── scheduler
+│   │   └── Campaign.java
 │   ├── mapper
-│   └── specification
-│
-├── segment
-│   ├── controller
-│   ├── dto
-│   ├── entity
+│   │   └── CampaignMapper.java
 │   ├── repository
+│   │   └── CampaignRepository.java
 │   ├── service
-│   └── specification
-│
-├── dashboard
-├── report
-├── notification
-├── audit
-│
+│   │   ├── CampaignService.java
+│   │   └── CampaignServiceImpl.java
+│   └── specifications
+│       └── CampaignSpecification.java
 ├── common
-│   ├── config
-│   ├── constants
-│   ├── exception
-│   ├── response
-│   ├── util
-│   ├── validation
-│   └── mapper
-│
-└── TelecomCampaignApplication.java
+│   ├── dto
+│   │   └── ApiResponse.java
+│   └── enums
+│       ├── CampaignStatus.java
+│       └── Role.java
+├── config
+│   ├── AdminBootstrapConfig.java
+│   ├── OpenApiConfig.java
+│   └── SecurityConfig.java
+├── exception
+│   ├── EmailAlreadyExistsException.java
+│   ├── GlobalExceptionHandler.java
+│   ├── InvalidCampaignStatusException.java
+│   ├── InvalidUserRoleException.java
+│   └── ResourceNotFoundException.java
+├── security
+│   └── JwtAuthenticationFilter.java
+└── user
+    ├── controller
+    │   ├── AuthController.java
+    │   └── UserController.java
+    ├── dto
+    │   ├── CreateUserRequest.java
+    │   ├── LoginRequest.java
+    │   ├── LoginResponse.java
+    │   ├── RegisterRequest.java
+    │   ├── UserResponse.java
+    │   └── UserResponse.java
+    ├── entity
+    │   └── User.java
+    ├── mapper
+    │   └── UserMapper.java
+    ├── repository
+    │   └── UserRepository.java
+    ├── service
+    │   ├── AuthService.java
+    │   ├── AuthServiceImpl.java
+    │   ├── JwtService.java
+    │   ├── UserService.java
+    │   └── UserServiceImpl.java
+    └── ...
 ```
 
 ---
 
-# 4. Package Responsibilities
+## 3. Package Responsibilities
 
-## auth
+### user
 
-Responsible for authentication and authorization.
+Responsible for:
 
-Contains:
+- registration
+- login
+- JWT generation
+- role assignment
+- admin user creation
 
-* Login
-* JWT generation
-* Refresh token
-* Spring Security configuration
-* Authentication filters
+### campaign
 
----
+Responsible for:
 
-## user
+- campaign creation
+- search and filtering
+- status transitions
+- access validation
+- persistence via JPA
 
-Responsible for user management.
+### common
 
-Features:
+Shared cross-cutting concerns:
 
-* Create user
-* Update user
-* Disable user
-* Assign roles
+- `ApiResponse<T>`
+- enum definitions
+- exception handling
+- reusable response structure
 
----
+### config
 
-## customer
+Provides application configuration:
 
-Responsible for customer lifecycle.
+- Spring Security setup
+- OpenAPI metadata
+- initial admin bootstrap
 
-Features:
+### security
 
-* CRUD
-* Search
-* Pagination
-* CSV Import
-* CSV Export
-* Dynamic Filtering
+Provides JWT processing for each request:
 
----
-
-## campaign
-
-Responsible for campaign management.
-
-Features:
-
-* Create campaign
-* Edit campaign
-* Schedule campaign
-* Approval workflow
-* Campaign execution
+- reads Authorization Bearer header
+- validates JWT
+- loads user from repository
+- sets authentication context
 
 ---
 
-## segment
+## 4. Controller Design
 
-Responsible for customer segmentation.
+## AuthController
 
-Features:
+Path: `/api/auth`
 
-* Dynamic filters
-* Segment rules
-* Customer matching
-* Segment preview
+Endpoints:
+
+- `POST /api/auth/login`
+
+Responsibilities:
+
+- accept login request body
+- delegate to `AuthService`
+- wrap response in `ApiResponse<LoginResponse>`
+
+## UserController
+
+Path: `/api/users`
+
+Endpoints:
+
+- `POST /api/users/register`
+- `GET /api/users/admin-test`
+- `POST /api/users`
+
+Responsibilities:
+
+- register public user
+- allow admin-only access checks
+- create user with role requirement
+
+## CampaignController
+
+Path: `/api/campaigns`
+
+Endpoints:
+
+- `POST /api/campaigns`
+- `GET /api/campaigns/{id}`
+- `GET /api/campaigns`
+- `PUT /api/campaigns/{id}`
+- `DELETE /api/campaigns/{id}`
+- `PATCH /api/campaigns/{id}/status`
+
+Responsibilities:
+
+- create, fetch, search, update, delete campaigns
+- validate manager access
+- enforce status transition rules
 
 ---
 
-## dashboard
+## 5. Service Layer Design
 
-Provides dashboard statistics.
+## AuthServiceImpl
 
-Examples:
+Responsibilities:
 
-* Active campaigns
-* Customer count
-* Success rate
-* Campaign trends
+- look up user by email
+- verify password with `PasswordEncoder`
+- generate JWT using `JwtService`
+- throw `BadCredentialsException` on failure
 
----
+## UserServiceImpl
 
-## report
+Responsibilities:
 
-Generates downloadable reports.
+- validate duplicate email
+- encode password
+- set `Role.USER` on registration
+- deny creating another admin user
+- return DTO response via mapper
 
-* Campaign Report
-* Customer Report
-* Execution Report
+## CampaignServiceImpl
 
----
+Responsibilities:
 
-## notification
-
-Future module responsible for SMS, Email and Push notifications.
-
----
-
-## audit
-
-Stores user activities and business events.
-
----
-
-## common
-
-Contains reusable components shared across all modules.
+- create campaign with current authenticated manager
+- fetch campaign by ID
+- apply dynamic specifications for filtering
+- authorize manager/admin access
+- validate status transitions
+- save updated campaign state
 
 ---
 
-# 5. Layered Architecture
+## 6. Entity Design
 
-Each feature follows the same structure.
+## User
 
-```text
-HTTP Request
+Fields:
 
-↓
+- `id`
+- `username`
+- `email`
+- `password`
+- `role`
+- `enabled`
+- `createdAt`
+- `updatedAt`
 
-Controller
+Table:
 
-↓
+- `users`
 
-Service
+## Campaign
 
-↓
+Fields:
 
-Repository
+- `id`
+- `name`
+- `description`
+- `status`
+- `startDate`
+- `endDate`
+- `createdAt`
+- `updatedAt`
+- `manager`
 
-↓
+Table:
 
-Database
+- `campaign`
 
-↓
+Relationship:
 
-Response DTO
+- `campaign.manager_id` -> `users.id`
 
-↓
+---
 
-HTTP Response
+## 7. Enum Design
+
+### Role
+
+```java
+ADMIN, MANAGER, USER
 ```
 
-Business logic will never be written inside controllers.
+### CampaignStatus
 
----
-
-# 6. Module Interaction
-
-```text
-React Frontend
-
-↓
-
-REST API
-
-↓
-
-Authentication
-
-↓
-
-Business Module
-
-↓
-
-Repository
-
-↓
-
-MySQL
-
-↓
-
-Redis Cache
-
-↓
-
-Response
+```java
+DRAFT, ACTIVE, PAUSED, COMPLETED, CANCELLED
 ```
 
 ---
 
-# 7. Core Entities
+## 8. Validation and Error Handling
 
-Version 1 includes the following entities.
+### DTO validation
 
-* User
-* Role
-* Permission
-* Customer
-* Campaign
-* Segment
-* SegmentRule
-* CampaignCustomer
-* RefreshToken
-* AuditLog
-* Notification
-* LoginHistory
+Validators used in code include:
 
-Additional entities may be introduced during implementation.
+- `@NotBlank`
+- `@Email`
+- `@Size`
+- `@NotNull`
 
----
+### Exception handling
 
-# 8. DTO Strategy
+Handled globally by `GlobalExceptionHandler` and custom exceptions:
 
-The application follows strict DTO separation.
+- `EmailAlreadyExistsException`
+- `InvalidUserRoleException`
+- `InvalidCampaignStatusException`
+- `ResourceNotFoundException`
 
-Example:
+### Security exception flow
 
-Authentication
-
-* LoginRequest
-* LoginResponse
-* RefreshTokenRequest
-* JwtResponse
-
-Customer
-
-* CustomerRequest
-* CustomerResponse
-
-Campaign
-
-* CampaignRequest
-* CampaignResponse
-
-Entities are never exposed directly to clients.
+- unauthorized requests return `401`
+- forbidden requests return `403`
 
 ---
 
-# 9. Validation Strategy
+## 9. Response Contract
 
-Validation will be performed using Jakarta Bean Validation.
-
-Examples include:
-
-* @NotBlank
-* @Email
-* @NotNull
-* @Pattern
-* @Positive
-* @Size
-
-All request validation occurs before business logic execution.
-
----
-
-# 10. Exception Handling
-
-A centralized exception handling mechanism will be implemented.
-
-Custom exceptions include:
-
-* ResourceNotFoundException
-* DuplicateResourceException
-* UnauthorizedException
-* ForbiddenException
-* BadRequestException
-* ValidationException
-* CampaignExecutionException
-
-A GlobalExceptionHandler will return standardized API responses.
-
----
-
-# 11. API Response Format
-
-Every REST API returns a consistent response structure.
+The backend wraps every successful or failed response using `ApiResponse<T>`:
 
 ```json
 {
-  "timestamp": "...",
-  "status": 200,
-  "message": "Success",
-  "data": {},
-  "errors": []
+  "success": true,
+  "statusCode": 200,
+  "message": "Campaign Fetched Successfully",
+  "data": {}
 }
 ```
 
----
-
-# 12. Security Design
-
-Authentication:
-
-* Spring Security
-* JWT Access Token
-* Refresh Token
-* BCrypt Password Encryption
-
-Authorization:
-
-Role-Based Access Control (RBAC)
-
-Roles:
-
-* ADMIN
-* MARKETING_MANAGER
-* OPERATOR
-* VIEWER
-
-Every protected API requires a valid JWT.
+This is the current response format implemented in the application.
 
 ---
 
-# 13. Redis Strategy
+## 10. Status Transition Rules
 
-Redis will cache:
+Implemented in `CampaignServiceImpl`:
 
-* Dashboard statistics
-* Customer information
-* Campaign details
-* Frequently accessed reference data
-
-Cache will be invalidated after update operations.
+- `DRAFT -> ACTIVE` or `CANCELLED`
+- `ACTIVE -> PAUSED`, `COMPLETED`, or `CANCELLED`
+- `PAUSED -> ACTIVE` or `CANCELLED`
+- `COMPLETED` and `CANCELLED` are terminal states
 
 ---
 
-# 14. Scheduler Design
+## 11. Design Summary
 
-Spring Scheduler will execute background jobs.
-
-Examples:
-
-* Campaign execution
-* Campaign retry
-* Status updates
-
-Future enhancements may replace the scheduler with Kafka-based event processing.
-
----
-
-# 15. Logging Strategy
-
-Logging framework:
-
-* SLF4J
-* Logback
-
-Log categories:
-
-* Authentication
-* API Requests
-* Business Operations
-* Scheduler
-* Exceptions
-* Audit Events
-
-Sensitive information such as passwords and JWT tokens will never be logged.
-
----
-
-# 16. Design Patterns
-
-The project will adopt the following patterns where appropriate:
-
-* Dependency Injection
-* Builder Pattern
-* Strategy Pattern
-* Factory Pattern
-* Repository Pattern
-
-Patterns will only be used when they improve readability and maintainability.
-
----
-
-# 17. Coding Standards
-
-The project follows these standards:
-
-* Constructor Injection
-* No Field Injection
-* No Business Logic inside Controllers
-* DTO-based communication
-* Layered Architecture
-* SOLID Principles
-* Clean Code Practices
-* Meaningful Naming
-* Small, focused classes and methods
-
----
-
-# 18. Testing Strategy
-
-Testing will include:
-
-* Unit Tests
-* Service Layer Tests
-* Repository Tests
-* Integration Tests
-* API Testing using Postman
-
-Frameworks:
-
-* JUnit 5
-* Mockito
-
----
-
-# 19. Future Enhancements
-
-The design supports future integration with:
-
-* Kafka
-* Elasticsearch
-* SMS Gateway
-* Email Gateway
-* Kubernetes
-* Prometheus
-* Grafana
-* Multi-Tenant Architecture
-
-without major architectural changes.
-
----
-
-# 20. Implementation Roadmap
-
-The project will be implemented in the following order:
-
-1. Backend Project Setup
-2. Frontend Project Setup
-3. Authentication Module
-4. User Module
-5. Customer Module
-6. Campaign Module
-7. Segmentation Engine
-8. Scheduler
-9. Redis Integration
-10. Dashboard
-11. Reports
-12. Dockerization
-13. GitHub Actions CI/CD
-14. Deployment
-15. Performance Optimization
-16. Testing & Documentation
-
----
-
-# Conclusion
-
-This Low Level Design (Version 1.0) provides the implementation blueprint for the Enterprise Telecom Campaign Management Platform. It defines the project structure, module boundaries, coding standards, security strategy, validation approach, caching strategy, scheduling mechanism, and overall development guidelines. As development progresses, this document will be refined to include detailed class diagrams, sequence diagrams, and implementation-specific decisions while maintaining alignment with the High Level Design and project requirements.
+The current backend is intentionally compact and matches the repository’s actual code. It is not a full telecom CRM platform yet; it is a Spring Boot backend with user authentication and campaign management capabilities that are implemented and working in the codebase today.

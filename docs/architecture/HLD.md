@@ -1,521 +1,184 @@
 # High Level Design (HLD)
 
-# Enterprise Telecom Campaign Management Platform
+# Telecom Campaign Management Backend
+
+## Version
 
 **Version:** 1.0
+**Status:** Current backend implementation
 
 ---
 
-# 1. Purpose
+## 1. Purpose
 
-This document describes the overall architecture of the Enterprise Telecom Campaign Management Platform.
+This document describes the current backend architecture for the Telecom Campaign Management Platform. It reflects the implementation that is actually present in this repository and not the earlier broader enterprise design.
 
-It explains the major system components, their responsibilities, interactions, technology stack, deployment architecture, and request flow. This document serves as the architectural blueprint for the application before implementation begins.
+The backend currently focuses on:
 
----
-
-# 2. System Overview
-
-The Enterprise Telecom Campaign Management Platform is a web-based application that enables telecom operators to create, schedule, execute, and monitor customer marketing campaigns.
-
-The application follows a layered architecture with a React frontend, Spring Boot backend, MySQL database, Redis cache, and Docker-based deployment.
+- user registration and authentication
+- JWT-based security
+- admin-only user provisioning
+- campaign creation, list/search, update, delete, and status change
+- persistence with MySQL via Spring Data JPA
 
 ---
 
-# 3. High Level Architecture
+## 2. Current System Scope
+
+The current implementation contains a focused backend scope with the following modules:
+
+### Authentication
+
+- login endpoint
+- JWT token generation and validation
+- protected route enforcement
+- public access for registration and login
+
+### User Management
+
+- register a normal user
+- create additional users by admin
+- role values: ADMIN, MANAGER, USER
+- user identity stored in `users` table
+
+### Campaign Management
+
+- create campaign
+- list campaigns with filters
+- fetch by ID
+- update campaign
+- delete campaign
+- update campaign status
+- rules for valid status transitions
+
+---
+
+## 3. High-Level Architecture
 
 ```text
-                    Users
-                      │
-                      ▼
-               React Frontend
-                      │
-             HTTPS / REST APIs
-                      │
-                      ▼
-          Spring Boot Backend API
-                      │
-     ┌──────────────┬──────────────┐
-     │              │              │
-     ▼              ▼              ▼
-   MySQL         Redis Cache    Scheduler
-     │                             │
-     └──────────────┬──────────────┘
-                    ▼
-              Audit Logging
+Client / Postman / Frontend
+         |
+         | HTTP / JSON
+         v
+Spring Boot Application
+         |
+         +--> Security Layer
+         |       - JWT filter
+         |       - Role-based access
+         |
+         +--> Controller Layer
+         |       - AuthController
+         |       - UserController
+         |       - CampaignController
+         |
+         +--> Service Layer
+         |       - AuthServiceImpl
+         |       - UserServiceImpl
+         |       - CampaignServiceImpl
+         |
+         +--> Repository Layer
+         |       - UserRepository
+         |       - CampaignRepository
+         |
+         +--> Persistence Layer
+                 - MySQL
+                 - JPA entities
 ```
 
 ---
 
-# 4. Architecture Style
+## 4. Backend Technology Stack
 
-The application follows a layered architecture.
+### Application Layer
 
-```text
-Presentation Layer
-        │
-        ▼
-Controller Layer
-        │
-        ▼
-Service Layer
-        │
-        ▼
-Repository Layer
-        │
-        ▼
-Database
-```
+- Java 21
+- Spring Boot 3
+- Spring Web
+- Spring Security
+- Spring Data JPA
+- Validation
+- JWT-based authentication
 
-Each layer has a single responsibility.
+### Storage Layer
 
-* Controller → Handles HTTP requests
-* Service → Business Logic
-* Repository → Database Access
-* Database → Persistent Storage
+- MySQL 8
+- Hibernate/JPA
+
+### Security Layer
+
+- BCrypt password encoding
+- JWT bearer authentication
+- role-based access checks via `@PreAuthorize`
 
 ---
 
-# 5. Major Components
-
-## Frontend
-
-Technology:
-
-* React
-* Vite
-* Material UI
-* Redux Toolkit
-* Axios
-
-Responsibilities:
-
-* User Interface
-* Authentication
-* Dashboard
-* Campaign Management
-* Customer Management
-* Reports
-* API Communication
-
----
-
-## Backend
-
-Technology:
-
-* Java 21
-* Spring Boot 3
-
-Responsibilities:
-
-* Business Logic
-* Authentication
-* Authorization
-* REST APIs
-* Validation
-* Scheduling
-* Caching
-* Database Operations
-
----
-
-## Database
-
-Technology:
-
-MySQL
-
-Responsibilities:
-
-* Store Users
-* Store Customers
-* Store Campaigns
-* Store Audit Logs
-* Store Reports
-* Store Refresh Tokens
-
----
-
-## Redis
-
-Responsibilities:
-
-* Cache Dashboard Data
-* Cache Customer Details
-* Cache Campaign Information
-* Improve Response Time
-
----
-
-## Scheduler
-
-Responsibilities:
-
-* Execute Scheduled Campaigns
-* Update Campaign Status
-* Generate Execution Logs
-* Retry Failed Jobs
-
----
-
-# 6. Core Modules
-
-The application is divided into the following business modules.
+## 5. Current Components
 
 ## Authentication Module
 
 Responsibilities:
 
-* Login
-* Logout
-* JWT Generation
-* Refresh Token
-* Role Validation
+- validate credentials
+- check user existence
+- verify password
+- return signed JWT token
 
----
-
-## User Management Module
+## User Module
 
 Responsibilities:
 
-* User CRUD
-* Role Assignment
-* Permission Management
-* Account Activation
-
----
-
-## Customer Management Module
-
-Responsibilities:
-
-* Customer CRUD
-* Customer Search
-* Customer Import
-* Customer Export
-* Pagination
-* Filtering
-
----
+- user registration
+- admin-created user records
+- default user role assignment
+- ownership and role checks
 
 ## Campaign Module
 
 Responsibilities:
 
-* Campaign Creation
-* Approval Workflow
-* Scheduling
-* Execution
-* Status Tracking
+- create campaign tied to a manager
+- list/search campaigns by status and keyword/date filters
+- update campaign metadata
+- delete campaign
+- move campaign between allowed lifecycle states
 
 ---
 
-## Customer Segmentation Module
+## 6. Core Design Principles
 
-Responsibilities:
-
-* Dynamic Filtering
-* Segment Creation
-* Customer Matching
-* Segment Preview
-
----
-
-## Dashboard Module
-
-Responsibilities:
-
-* Campaign Statistics
-* Customer Statistics
-* Success Rate
-* Active Campaigns
+- keep the backend small and focused on current features
+- use Spring MVC controllers for HTTP handling
+- keep validation close to DTOs
+- centralize exceptions using `@RestControllerAdvice`
+- use standardized `ApiResponse<T>` envelope
+- rely on Spring Security for authentication and authorization
 
 ---
 
-## Reporting Module
+## 7. Runtime Security Model
 
-Responsibilities:
+Current access rules:
 
-* Campaign Reports
-* Customer Reports
-* Export Reports
-
----
-
-## Audit Module
-
-Responsibilities:
-
-* Track User Activity
-* Track Business Operations
-* Store Audit History
+- `/api/auth/**` is public
+- `/api/users/register` is public
+- `/api/users/admin-test` requires `ADMIN`
+- `/api/users` creation requires `ADMIN`
+- `/api/campaigns` create/update/delete/status actions require `ADMIN` or `MANAGER`
+- all other requests require authentication
 
 ---
 
-# 7. Request Flow
+## 8. Current Data Model Summary
 
-Example: Create Campaign
+The implemented backend has two primary persistence entities:
 
-```text
-User
+- `User`
+- `Campaign`
 
-↓
-
-React UI
-
-↓
-
-REST API
-
-↓
-
-Campaign Controller
-
-↓
-
-Campaign Service
-
-↓
-
-Validation
-
-↓
-
-Repository
-
-↓
-
-MySQL
-
-↓
-
-Response
-
-↓
-
-React UI
-```
+The data model is intentionally minimal and aligns to the code currently checked in.
 
 ---
 
-# 8. Authentication Flow
+## 9. Notes
 
-```text
-User Login
-
-↓
-
-Spring Security
-
-↓
-
-Validate Credentials
-
-↓
-
-Generate JWT
-
-↓
-
-Return Token
-
-↓
-
-Frontend Stores Token
-
-↓
-
-Every API Request
-
-↓
-
-JWT Validation Filter
-
-↓
-
-Controller
-
-↓
-
-Business Logic
-```
-
----
-
-# 9. Campaign Execution Flow
-
-```text
-Campaign Created
-
-↓
-
-Approved
-
-↓
-
-Scheduled
-
-↓
-
-Scheduler Executes
-
-↓
-
-Fetch Target Customers
-
-↓
-
-Process Campaign
-
-↓
-
-Update Status
-
-↓
-
-Store Audit Logs
-
-↓
-
-Dashboard Updated
-```
-
----
-
-# 10. Deployment Architecture
-
-```text
-Browser
-
-↓
-
-NGINX
-
-↓
-
-React
-
-↓
-
-Spring Boot
-
-↓
-
-MySQL
-
-↓
-
-Redis
-```
-
-All services will run using Docker Compose during development.
-
----
-
-# 11. Security Architecture
-
-The application implements multiple security layers.
-
-* JWT Authentication
-* BCrypt Password Hashing
-* Role-Based Access Control
-* Input Validation
-* Secure REST APIs
-* Global Exception Handling
-
----
-
-# 12. Logging Strategy
-
-The application will maintain logs for:
-
-* Login Attempts
-* API Requests
-* Campaign Execution
-* System Errors
-* Audit Activities
-
-Logging will help production support teams identify and troubleshoot issues efficiently.
-
----
-
-# 13. Performance Strategy
-
-Performance optimization techniques include:
-
-* Redis Caching
-* Pagination
-* Lazy Loading
-* Database Indexing
-* Optimized SQL Queries
-* Asynchronous Processing
-
----
-
-# 14. Scalability Considerations
-
-The architecture supports future enhancements such as:
-
-* Kafka Integration
-* Microservices Migration
-* Kubernetes Deployment
-* Multi-Tenant Support
-* Distributed Caching
-* Horizontal Scaling
-
----
-
-# 15. Technology Stack
-
-| Layer             | Technology               |
-| ----------------- | ------------------------ |
-| Frontend          | React, Vite, Material UI |
-| Backend           | Java 21, Spring Boot 3   |
-| Security          | Spring Security, JWT     |
-| Database          | MySQL                    |
-| Cache             | Redis                    |
-| Build Tool        | Maven                    |
-| Containerization  | Docker                   |
-| Reverse Proxy     | NGINX                    |
-| CI/CD             | GitHub Actions           |
-| API Documentation | Swagger                  |
-| Testing           | JUnit, Mockito, Postman  |
-
----
-
-# 16. Design Principles
-
-The application follows the following engineering principles:
-
-* Layered Architecture
-* SOLID Principles
-* Clean Code
-* Separation of Concerns
-* Dependency Injection
-* RESTful API Design
-* Reusable Components
-* Enterprise Coding Standards
-
----
-
-# 17. Future Enhancements
-
-The architecture is designed to support future integrations without significant redesign.
-
-Potential enhancements include:
-
-* SMS Gateway Integration
-* Email Gateway
-* Kafka Event Streaming
-* Elasticsearch
-* Prometheus Monitoring
-* Grafana Dashboards
-* Kubernetes Deployment
-* Multi-Region Deployment
-
----
-
-# Conclusion
-
-The Enterprise Telecom Campaign Management Platform is designed using modern enterprise software architecture principles. The modular design, layered architecture, secure authentication, scalable deployment model, and production-ready technology stack provide a strong foundation for developing a maintainable and extensible enterprise application.
+This HLD is intentionally limited to the backend implementation that exists today. It does not describe unimplemented modules such as customer management, segment management, reports, dashboards, notifications, or multi-role permission tables.

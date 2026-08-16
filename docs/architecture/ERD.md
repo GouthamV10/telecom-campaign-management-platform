@@ -1,408 +1,152 @@
 # Entity Relationship Diagram (ERD)
 
-# Enterprise Telecom Campaign Management Platform
+# Telecom Campaign Management Backend
+
+## Version
 
 **Version:** 1.0
+**Status:** Current backend implementation
 
 ---
 
-# 1. Purpose
+## 1. Purpose
 
-This document defines the logical database design for the Enterprise Telecom Campaign Management Platform.
-
-It identifies the core entities, their relationships, and the business rules governing those relationships. The ERD serves as the foundation for designing the relational database schema and implementing JPA entity mappings.
+This ERD reflects the actual database model implemented by the current backend. It documents the entity relationships that exist in the codebase today.
 
 ---
 
-# 2. Core Entities
+## 2. Current Entities
 
-The application consists of the following entities.
+### User
 
-## Identity & Security
+Attributes:
 
-* User
-* Role
-* Permission
-* RefreshToken
-* LoginHistory
+- id
+- username
+- email
+- password
+- role
+- enabled
+- createdAt
+- updatedAt
+
+### Campaign
+
+Attributes:
+
+- id
+- name
+- description
+- status
+- startDate
+- endDate
+- createdAt
+- updatedAt
+- manager_id
+
+### Enums
+
+- Role: ADMIN, MANAGER, USER
+- CampaignStatus: DRAFT, ACTIVE, PAUSED, COMPLETED, CANCELLED
 
 ---
 
-## Customer Management
-
-* Customer
-
----
-
-## Campaign Management
-
-* Campaign
-* Segment
-* SegmentRule
-* CampaignCustomer
-
----
-
-## Audit & Notifications
-
-* AuditLog
-* Notification
-
----
-
-# 3. Entity Relationships
+## 3. Relationship Diagram
 
 ```text
-+-----------+          +-----------+
-|   User    |          |   Role    |
-+-----------+          +-----------+
-| id        |<-------> | id        |
-| username  |    M:N   | name      |
-| email     |          | desc      |
-| password  |          +-----------+
-| status    |                 |
-+-----------+                 |
-      |                       | M:N
-      |1                      |
-      |                       ▼
-      |                +---------------+
-      |                | Permission    |
-      |                +---------------+
-      |                | id            |
-      |                | name          |
-      |                | description   |
-      |                +---------------+
-      |
-      |1
-      ▼
-+----------------+
-| RefreshToken   |
-+----------------+
-| id             |
-| token          |
-| expiryDate     |
-+----------------+
-
-      |
-      |1
-      ▼
-+----------------+
-| LoginHistory   |
-+----------------+
-| id             |
-| loginTime      |
-| ipAddress      |
-+----------------+
-
-==========================================================
-
-+----------------+
-|   Customer     |
-+----------------+
-| id             |
-| name           |
-| mobile         |
-| state          |
-| circle         |
-| plan           |
-| revenue        |
-| customerType   |
-| kycStatus      |
-+----------------+
-
-        ^
-        |
-        | M:N
-        |
-+----------------------+
-| CampaignCustomer     |
-+----------------------+
-| id                   |
-| campaignId           |
-| customerId           |
-| deliveryStatus       |
-| deliveredAt          |
-+----------------------+
-        |
-        | M:1
-        ▼
-+----------------+
-|   Campaign     |
-+----------------+
-| id             |
-| name           |
-| description    |
-| type           |
-| priority       |
-| status         |
-| scheduleTime   |
-+----------------+
-        |
-        | M:1
-        ▼
-+----------------+
-|    Segment     |
-+----------------+
-| id             |
-| name           |
-| description    |
-+----------------+
-        |
-        |1
-        ▼
-+----------------------+
-|   SegmentRule        |
-+----------------------+
-| id                   |
-| fieldName            |
-| operator             |
-| value                |
-+----------------------+
-
-==========================================================
-
-+----------------+
-| AuditLog       |
-+----------------+
-| id             |
-| action         |
-| module         |
-| userId         |
-| createdAt      |
-+----------------+
-
-+----------------+
-| Notification   |
-+----------------+
-| id             |
-| type           |
-| recipient       |
-| status         |
-+----------------+
++---------------------+
+| User                |
++---------------------+
+| id                  |
+| username            |
+| email               |
+| password            |
+| role                |
+| enabled             |
+| createdAt           |
+| updatedAt           |
++---------------------+
+          |
+          | 1
+          |
+          | has many
+          v
++---------------------+
+| Campaign            |
++---------------------+
+| id                  |
+| name                |
+| description         |
+| status              |
+| startDate           |
+| endDate             |
+| createdAt           |
+| updatedAt           |
+| manager_id          |
++---------------------+
 ```
 
 ---
 
-# 4. Relationship Summary
+## 4. Relationship Definition
 
-## User ↔ Role
+### User -> Campaign
 
-Relationship:
-
-Many-to-Many
+Relationship: One-to-Many
 
 Reason:
 
-A user can have multiple roles, and each role can be assigned to multiple users.
+A user can act as a manager for multiple campaigns, and each campaign belongs to exactly one manager.
 
-Intermediate Table:
+Foreign key:
 
-* user_roles
-
----
-
-## Role ↔ Permission
-
-Relationship:
-
-Many-to-Many
-
-Reason:
-
-A role contains multiple permissions, and permissions may be reused by multiple roles.
-
-Intermediate Table:
-
-* role_permissions
+- `campaign.manager_id` references `users.id`
 
 ---
 
-## User ↔ RefreshToken
+## 5. Physical Table Structure
 
-Relationship:
+### users
 
-One-to-Many
+```sql
+CREATE TABLE users (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL,
+    enabled BOOLEAN NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL
+);
+```
 
-Reason:
+### campaign
 
-A user may log in from multiple devices, each with its own refresh token.
-
----
-
-## User ↔ LoginHistory
-
-Relationship:
-
-One-to-Many
-
-Reason:
-
-Every successful login is recorded.
-
----
-
-## Campaign ↔ Segment
-
-Relationship:
-
-Many-to-One
-
-Reason:
-
-Many campaigns can target the same customer segment.
-
----
-
-## Segment ↔ SegmentRule
-
-Relationship:
-
-One-to-Many
-
-Reason:
-
-Each segment consists of one or more filtering rules.
-
-Example:
-
-Segment:
-
-"Premium Karnataka Users"
-
-Rules:
-
-* State = Karnataka
-* Plan >= 299
-* Revenue > 1000
+```sql
+CREATE TABLE campaign (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    description VARCHAR(500) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    start_date TIMESTAMP NULL,
+    end_date TIMESTAMP NULL,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    manager_id BIGINT NOT NULL,
+    CONSTRAINT fk_campaign_manager
+        FOREIGN KEY (manager_id) REFERENCES users(id)
+);
+```
 
 ---
 
-## Campaign ↔ Customer
+## 6. Summary
 
-Relationship:
+The current backend has a simple but valid relational model:
 
-Many-to-Many
+- one user can manage many campaigns
+- each campaign belongs to a single manager user
+- role and campaign lifecycle are stored as enums in the application model
 
-Implemented using:
-
-CampaignCustomer
-
-Reason:
-
-A campaign targets many customers.
-
-A customer may receive multiple campaigns.
-
-CampaignCustomer stores execution-specific information such as delivery status and timestamps.
-
----
-
-## User ↔ AuditLog
-
-Relationship:
-
-One-to-Many
-
-Reason:
-
-Every important user action is recorded for auditing purposes.
-
----
-
-# 5. Database Normalization
-
-The database is designed to satisfy Third Normal Form (3NF).
-
-Objectives:
-
-* Eliminate redundant data
-* Maintain referential integrity
-* Avoid update anomalies
-* Improve maintainability
-
----
-
-# 6. Primary Keys
-
-Every table uses a surrogate primary key.
-
-Example:
-
-* user_id
-* customer_id
-* campaign_id
-
-All primary keys are generated using database identity columns.
-
----
-
-# 7. Foreign Keys
-
-Examples:
-
-CampaignCustomer.customer_id → Customer.id
-
-CampaignCustomer.campaign_id → Campaign.id
-
-SegmentRule.segment_id → Segment.id
-
-RefreshToken.user_id → User.id
-
-AuditLog.user_id → User.id
-
----
-
-# 8. Indexing Strategy
-
-Indexes will be created on frequently queried columns.
-
-Examples:
-
-Customer
-
-* mobile
-* state
-* customerType
-* revenue
-
-Campaign
-
-* status
-* scheduleTime
-* createdAt
-
-AuditLog
-
-* userId
-* createdAt
-
----
-
-# 9. Soft Delete Strategy
-
-Business entities such as Customer and Campaign will support soft deletion using an active flag or deleted timestamp.
-
-This preserves historical data while preventing accidental data loss.
-
----
-
-# 10. Future Enhancements
-
-The ERD has been designed to support future additions with minimal schema changes.
-
-Potential enhancements include:
-
-* SMS gateway integration
-* Email notifications
-* Kafka event processing
-* Campaign templates
-* File attachments
-* Multi-tenant support
-* Customer preferences
-* Campaign analytics
-
----
-
-# Conclusion
-
-The Version 1 Entity Relationship Diagram defines the core business entities and their relationships for the Enterprise Telecom Campaign Management Platform. The schema follows relational database design best practices, supports enterprise scalability, and provides a strong foundation for implementing the application using Spring Data JPA and MySQL.
+This ERD matches the implemented source code and current database schema in the repository.
