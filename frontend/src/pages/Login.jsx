@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { adminTest, login as loginApi } from "../services/authApi";
+import { login as loginApi } from "../services/authApi";
 import { useAuth } from "../hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 function Login(){
 
@@ -8,6 +9,8 @@ function Login(){
   const [password, setPassword] = useState("");
 
   const {login} = useAuth();
+
+  const navigate = useNavigate();
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -17,8 +20,9 @@ function Login(){
       console.log("API response", response);
       login(response.data.token);
       console.log("Token passed to AuthContext:", response.data.token);
-      const testResponse = await adminTest();
-      console.log("Protected API response:", testResponse);
+
+      navigate("/dashboard");
+
     } catch (error) {
       console.error(error);
     }
