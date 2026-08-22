@@ -6,4 +6,6 @@ import com.telecom.campaign.user.dto.LoginResponse;
 public interface AuthService {
 
     LoginResponse login(LoginRequest loginRequest);
+
+    LoginResponse refreshToken(String refreshToken);
 }
