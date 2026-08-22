@@ -100,7 +100,7 @@ function Login() {
               value={email}
               error={errors.email}
               onChange={(e) => setEmail(e.target.value)}
-              className="bg-slate-900/50 border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20"
+              className="bg-white border-slate-600 text-gray-900 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20"
             />
             <Input
               label="Password"
@@ -112,7 +112,7 @@ function Login() {
               value={password}
               error={errors.password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-slate-900/50 border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20"
+              className="bg-white border-slate-600 text-gray-900 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20"
             />
             <Button
               type="submit"
