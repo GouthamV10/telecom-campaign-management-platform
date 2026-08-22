@@ -1,9 +1,10 @@
 import { lazy } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoutes from "./ProtectedRoutes";
 import AppLayout from "../layouts/AppLayout";
 import ErrorBoundary from "../components/ErrorBoundary";
 import LazyPage from "../components/LazyPage";
+import { useAuth } from "../hooks/useAuth";
 
 const Login = lazy(() => import("../pages/Login"));
 const Dashboard = lazy(() => import("../pages/Dashboard"));
@@ -12,11 +13,18 @@ const Users = lazy(() => import("../pages/Users"));
 const Profile = lazy(() => import("../pages/Profile"));
 const Unauthorized = lazy(() => import("../pages/Unauthorized"));
 
+function RootRedirect() {
+  const { token } = useAuth();
+
+  return <Navigate to={token ? "/dashboard" : "/login"} replace />;
+}
+
 function AppRoutes() {
   return (
     <BrowserRouter>
       <ErrorBoundary>
         <Routes>
+          <Route path="/" element={<RootRedirect />} />
           <Route
             path="/login"
             element={
