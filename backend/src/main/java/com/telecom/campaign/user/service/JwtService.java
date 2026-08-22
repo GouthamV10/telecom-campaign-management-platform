@@ -22,6 +22,9 @@ public class JwtService {
     @Value("${jwt.expiration}")
     private long expiration;
 
+    @Value("${jwt.refresh-expiration:604800000}")
+    private long refreshExpiration;
+
     private Key getSigningKey() {
         Key key = Keys.hmacShaKeyFor(
                 Decoders.BASE64.decode(secret)
@@ -43,6 +46,47 @@ public class JwtService {
 
         log.debug("Token generated for user={}, expiresInMs={}", user.getEmail(), expiration);
         return token;
+    }
+
+    public String generateRefreshToken(User user) {
+        log.info("Generating refresh token for user={}", user.getEmail());
+
+        String refreshToken = Jwts.builder()
+                .subject(user.getEmail())
+                .claim("type", "refresh")
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + refreshExpiration))
+                .signWith(getSigningKey())
+                .compact();
+
+        log.debug("Refresh token generated for user={}", user.getEmail());
+        return refreshToken;
+    }
+
+    public String extractUsernameFromRefresh(String token) {
+        try {
+            String subject = Jwts.parser().verifyWith((SecretKey) getSigningKey()).build().parseSignedClaims(token).getPayload().getSubject();
+            log.debug("Extracted subject from refresh token");
+            return subject;
+        } catch (Exception e) {
+            log.warn("Failed to extract username from refresh token: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    public boolean isRefreshTokenValid(String token) {
+        try {
+            var claims = Jwts.parser().verifyWith((SecretKey) getSigningKey()).build().parseSignedClaims(token).getPayload();
+            String type = claims.get("type", String.class);
+            return "refresh".equals(type) && !claims.getExpiration().before(new Date());
+        } catch (Exception e) {
+            log.warn("Refresh token validation failed: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    public long getExpiration() {
+        return expiration;
     }
 
     public String extractUsername(String token){
