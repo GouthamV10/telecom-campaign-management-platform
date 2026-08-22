@@ -1,7 +1,9 @@
 package com.telecom.campaign.config;
 
 import com.telecom.campaign.security.JwtAuthenticationFilter;
+import com.telecom.campaign.security.RateLimitFilter;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -25,16 +27,21 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final RateLimitFilter rateLimitFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter){
+    @Autowired
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, @Autowired(required = false) RateLimitFilter rateLimitFilter){
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-
+        this.rateLimitFilter = rateLimitFilter;
     }
 
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
         log.info("Configuring SecurityFilterChain");
+        if (rateLimitFilter != null) {
+            http.addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class);
+        }
         http
                 .addFilterBefore(
                         jwtAuthenticationFilter,

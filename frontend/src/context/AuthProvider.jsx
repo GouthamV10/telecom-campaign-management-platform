@@ -1,25 +1,31 @@
 import { useState } from "react";
 import { AuthContext } from "./AuthContext";
-import { decodeToken } from "../services/jwt";
+import { decodeToken, isTokenExpired } from "../services/jwt";
 
 export function AuthProvider({ children }) {
-    const [token, setToken] = useState(() => localStorage.getItem("token"));
-
-    const [role, setRole] = useState(()=>{
+    const [token, setToken] = useState(() => {
         const storedToken = localStorage.getItem("token");
-
-        if(!storedToken){
+        if (storedToken && isTokenExpired(storedToken)) {
+            localStorage.removeItem("token");
             return null;
         }
-
-        return decodeToken(storedToken).role;
+        return storedToken;
     });
 
-    const login = (token) => {
-        localStorage.setItem("token", token);
-        setToken(token);
-        const payload = decodeToken(token);
-        setRole(payload.role)
+    const [role, setRole] = useState(() => {
+        const storedToken = localStorage.getItem("token");
+        if (!storedToken || isTokenExpired(storedToken)) {
+            return null;
+        }
+        const decoded = decodeToken(storedToken);
+        return decoded ? decoded.role : null;
+    });
+
+    const login = (newToken) => {
+        localStorage.setItem("token", newToken);
+        setToken(newToken);
+        const payload = decodeToken(newToken);
+        setRole(payload ? payload.role : null);
     };
 
     const logout = () => {

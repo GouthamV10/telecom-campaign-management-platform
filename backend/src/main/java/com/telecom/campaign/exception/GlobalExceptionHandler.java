@@ -88,4 +88,18 @@ public class GlobalExceptionHandler{
         ApiResponse<Void> response = ApiResponse.<Void>builder().success(false).statusCode(401).message(ex.getMessage()).data(null).build();
         return ResponseEntity.status(401).body(response);
     }
+
+    @ExceptionHandler(WeakPasswordException.class)
+    public ResponseEntity<ApiResponse<Void>> handleWeakPasswordException(WeakPasswordException ex) {
+        log.info("WeakPasswordException: {}", ex.getMessage());
+        ApiResponse<Void> response = ApiResponse.<Void>builder().success(false).statusCode(400).message(ex.getMessage()).data(null).build();
+        return ResponseEntity.status(400).body(response);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
+        log.error("Unexpected error: {}", ex.getMessage(), ex);
+        ApiResponse<Void> response = ApiResponse.<Void>builder().success(false).statusCode(500).message("An unexpected error occurred").data(null).build();
+        return ResponseEntity.status(500).body(response);
+    }
 }

@@ -1,6 +1,7 @@
 package com.telecom.campaign.campaign.repository;
 
 import com.telecom.campaign.campaign.entity.Campaign;
+import com.telecom.campaign.common.enums.CampaignStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
@@ -8,4 +9,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface CampaignRepository extends JpaRepository<Campaign, Long>, JpaSpecificationExecutor<Campaign> {
 
+    long countByStatus(CampaignStatus status);
 }
