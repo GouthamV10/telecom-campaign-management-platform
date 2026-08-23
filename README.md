@@ -4,6 +4,28 @@ A full-stack campaign management application for telecom operations teams. The c
 
 The platform is built with Spring Boot and Java 21 on the backend, React and Vite on the frontend, MySQL for persistence, Redis for rate limiting, and Docker Compose for local deployment.
 
+## Screenshots
+
+### Login
+
+![Login screen](docs/screenshots/login.png)
+
+### Dashboard
+
+![Dashboard screen](docs/screenshots/dashboard.png)
+
+### Campaign Management
+
+![Campaign management screen](docs/screenshots/campaign.png)
+
+### User Management
+
+![User management screen](docs/screenshots/Users.png)
+
+### Profile
+
+![Profile screen](docs/screenshots/Profile.png)
+
 ## Current Scope
 
 Implemented features:
