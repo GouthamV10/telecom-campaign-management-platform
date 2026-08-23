@@ -3,7 +3,7 @@ spring:
     name: telecom-campaign-backend
 
   profiles:
-    active: docker
+    active: dev
 
 server:
   port: 8080
