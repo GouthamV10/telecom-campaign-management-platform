@@ -6,11 +6,20 @@ This schema reflects the actual persistence model used by the current backend mo
 
 - Name: telecom_campaign_db
 - Engine: MySQL 8 / InnoDB
-- DDL Strategy: Spring JPA `hibernate.ddl-auto=update`
+- DDL Strategy: Flyway migrations with Hibernate `ddl-auto=validate`
 
 ---
 
-## 1. users
+## 1. Migration Strategy
+
+Schema changes are applied by the versioned SQL files in `backend/src/main/resources/db/migration`:
+
+- `V1__create_tables.sql` creates the `users` and `campaign` tables and campaign indexes.
+- `V2__seed_admin_user.sql` inserts the initial admin account.
+
+The `dev`, `docker`, and `prod` profiles validate the resulting schema with Hibernate. Do not edit a migration that has already run against a shared database; add a new versioned migration instead.
+
+## 2. users
 
 ```sql
 CREATE TABLE users (
@@ -38,7 +47,7 @@ Indexes:
 
 ---
 
-## 2. campaign
+## 3. campaign
 
 ```sql
 CREATE TABLE campaign (
@@ -70,7 +79,7 @@ Indexes:
 
 ---
 
-## 3. Relationships
+## 4. Relationships
 
 ### users -> campaign
 
@@ -79,13 +88,13 @@ Indexes:
 
 ---
 
-## 4. Security and auth behavior
+## 5. Security and auth behavior
 
 The current implementation uses JWT-based authentication and the `User` entity stores the user role directly. There are no separate `roles`, `permissions`, `refresh_tokens`, `customers`, `segments`, or audit tables in this backend version.
 
 ---
 
-## 5. Current data model summary
+## 6. Current data model summary
 
 The implemented backend currently includes only the following core entities:
 
